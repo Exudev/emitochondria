@@ -18,7 +18,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/emitochondria.git"
+    "url": "https://github.com/Exudev/emitochondria.git"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -43,6 +43,7 @@
     "build": "tsup",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "prepublishOnly": "npm run test:run && npm run build"
   },
   "devDependencies": {

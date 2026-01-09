@@ -280,4 +280,152 @@ describe('emitochondria', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('biological aliases', () => {
+    it('bind should work as alias for on', () => {
+      const handler = vi.fn();
+      const unsubscribe = emitter.bind('user:login', handler);
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith({ userId: '123', email: 'test@example.com' });
+
+      unsubscribe();
+      emitter.pulse('user:login', { userId: '456', email: 'test2@example.com' });
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('release should work as alias for off', () => {
+      const handler = vi.fn();
+      emitter.bind('user:login', handler);
+      emitter.release('user:login', handler);
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('pulse should work as alias for emit', () => {
+      const handler = vi.fn();
+      emitter.bind('user:login', handler);
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+
+      expect(handler).toHaveBeenCalledWith({ userId: '123', email: 'test@example.com' });
+    });
+
+    it('cascade should work as alias for emitAsync', async () => {
+      const order: number[] = [];
+
+      emitter.bind('user:login', async () => {
+        await new Promise((r) => setTimeout(r, 20));
+        order.push(1);
+      });
+
+      emitter.bind('user:login', async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        order.push(2);
+      });
+
+      await emitter.cascade('user:login', { userId: '123', email: 'test@example.com' });
+
+      expect(order).toContain(1);
+      expect(order).toContain(2);
+      expect(order.length).toBe(2);
+    });
+
+    it('spike should work as alias for once', () => {
+      const handler = vi.fn();
+      emitter.spike('user:login', handler);
+
+      emitter.pulse('user:login', { userId: '1', email: 'a@a.com' });
+      emitter.pulse('user:login', { userId: '2', email: 'b@b.com' });
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith({ userId: '1', email: 'a@a.com' });
+    });
+
+    it('membrane should work as alias for onAny', () => {
+      const handler = vi.fn();
+      const unsubscribe = emitter.membrane(handler);
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+      emitter.pulse('user:logout', { userId: '123' });
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(handler).toHaveBeenNthCalledWith(1, 'user:login', { userId: '123', email: 'test@example.com' });
+      expect(handler).toHaveBeenNthCalledWith(2, 'user:logout', { userId: '123' });
+
+      unsubscribe();
+      emitter.pulse('app:ready');
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+
+    it('apoptosis should work as alias for clear', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+
+      emitter.bind('user:login', handler1);
+      emitter.bind('user:logout', handler2);
+
+      emitter.apoptosis('user:login');
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+      emitter.pulse('user:logout', { userId: '123' });
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalledTimes(1);
+    });
+
+    it('apoptosis should clear all handlers when called without argument', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const wildcardHandler = vi.fn();
+
+      emitter.bind('user:login', handler1);
+      emitter.bind('user:logout', handler2);
+      emitter.membrane(wildcardHandler);
+
+      emitter.apoptosis();
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+      emitter.pulse('user:logout', { userId: '123' });
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+      expect(wildcardHandler).not.toHaveBeenCalled();
+    });
+
+    it('receptors should work as alias for listenerCount', () => {
+      expect(emitter.receptors('user:login')).toBe(0);
+
+      emitter.bind('user:login', () => {});
+      expect(emitter.receptors('user:login')).toBe(1);
+
+      emitter.bind('user:login', () => {});
+      expect(emitter.receptors('user:login')).toBe(2);
+    });
+
+    it('should allow mixing standard and biological APIs', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+
+      emitter.on('user:login', handler1);
+      emitter.bind('user:login', handler2);
+
+      emitter.pulse('user:login', { userId: '123', email: 'test@example.com' });
+
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+
+      emitter.release('user:login', handler1);
+      emitter.off('user:login', handler2);
+
+      emitter.emit('user:login', { userId: '456', email: 'test2@example.com' });
+
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+    });
+  });
 });
