@@ -9,16 +9,19 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/emitochondria)](https://bundlephobia.com/package/emitochondria)
 
-A tiny, fully-typed event emitter for TypeScript. Zero dependencies, under 1KB.
+A tiny, fully-typed event emitter for TypeScript with built-in error handling and memory leak detection. Zero dependencies, under 2KB.
 
 ## Features
 
 - ✅ **Full type safety** — Event names and payloads checked at compile time
-- ✅ **Tiny** — Under 1KB minified
+- ✅ **Tiny** — Under 2KB minified
 - ✅ **Zero dependencies**
 - ✅ **Universal** — Works in browser and Node.js
 - ✅ **Async support** — `emitAsync` awaits all handlers
 - ✅ **Wildcard listeners** — `onAny` for debugging/logging
+- ✅ **Error handling** — Configurable error handling for resilient apps
+- ✅ **Memory leak detection** — Warns when too many listeners are added
+- ✅ **Inspection tools** — Debug your emitter with introspection methods
 
 ## Installation
 
@@ -55,9 +58,28 @@ events.emit('app:ready');
 
 ## API
 
-### `createEmitochondria<T>()`
+### `createEmitochondria<T>(options?)`
 
-Create a new typed emitter.
+Create a new typed emitter with optional configuration.
+
+```typescript
+const events = createEmitochondria<MyEvents>({
+  // Custom error handler (default: logs in dev, silent in production)
+  onError: (error, event, handler) => {
+    console.error(`Error in ${event}:`, error);
+  },
+  // Or preserve throwing behavior
+  // onError: 'throw',
+
+  // Max listeners before warning (default: 10, 0 to disable)
+  maxListeners: 20,
+
+  // Custom warning handler
+  onMaxListenersExceeded: (event, count, max) => {
+    console.warn(`Too many listeners on ${event}: ${count}/${max}`);
+  }
+});
+```
 
 ### `.on(event, handler)`
 
@@ -124,6 +146,115 @@ Clear handlers for an event, or all handlers if no event specified.
 ### `.listenerCount(event)`
 
 Get the number of listeners for an event.
+
+### `.setErrorHandler(handler)`
+
+Change the error handler at runtime.
+
+```typescript
+events.setErrorHandler((error, event) => {
+  logger.error(`Event ${event} failed:`, error);
+});
+```
+
+### `.setMaxListeners(n)` / `.getMaxListeners()`
+
+Adjust or check the max listener warning threshold.
+
+```typescript
+events.setMaxListeners(50); // Increase limit
+console.log(events.getMaxListeners()); // 50
+```
+
+### `.eventNames()`
+
+Get all event names that currently have registered listeners.
+
+```typescript
+events.on('user:login', handler1);
+events.on('user:logout', handler2);
+console.log(events.eventNames()); // ['user:login', 'user:logout']
+```
+
+### `.listeners(event)`
+
+Get all handlers registered for a specific event.
+
+```typescript
+const handlers = events.listeners('user:login');
+console.log(handlers.length); // Number of handlers
+```
+
+### `.wildcardListeners()`
+
+Get all wildcard handlers.
+
+```typescript
+const wildcards = events.wildcardListeners();
+console.log(wildcards.length);
+```
+
+### `.hasListener(event, handler)`
+
+Check if a specific handler is registered for an event.
+
+```typescript
+if (events.hasListener('user:login', myHandler)) {
+  console.log('Handler is registered');
+}
+```
+
+## Error Handling
+
+By default, errors thrown by event handlers are caught and logged in development (silent in production). This prevents one failing handler from breaking others:
+
+```typescript
+events.on('save', () => { throw new Error('DB error'); });
+events.on('save', () => console.log('This still runs!')); // ✅ Executes
+
+events.emit('save');
+// Console (dev): [Emitochondria] Error in handler for event "save": Error: DB error
+// Output: "This still runs!"
+```
+
+**Custom error handling:**
+
+```typescript
+const events = createEmitochondria<MyEvents>({
+  onError: (error, event, handler) => {
+    // Send to your error tracking service
+    Sentry.captureException(error, { tags: { event } });
+  }
+});
+```
+
+**Preserve throwing behavior (v1.0 compatibility):**
+
+```typescript
+const events = createEmitochondria<MyEvents>({
+  onError: 'throw' // Errors will throw like before
+});
+```
+
+## Memory Leak Detection
+
+Emitochondria warns you when adding too many listeners to a single event (default: 10), which often indicates a bug:
+
+```typescript
+// This might indicate a leak (handler not cleaned up in a loop)
+for (let i = 0; i < 15; i++) {
+  events.on('tick', handler); // Warning after 10th iteration
+}
+// Console: [Emitochondria] Possible memory leak detected: 11 listeners...
+```
+
+Disable or customize:
+
+```typescript
+const events = createEmitochondria<MyEvents>({
+  maxListeners: 0 // Disable warnings
+});
+```
 
 ## ⚡ Biological API (Alternative Naming)
 
