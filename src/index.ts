@@ -47,7 +47,7 @@ export interface Emitochondria<T extends EventMap> {
   /** Get the number of listeners for an event. */
   listenerCount<K extends EventKey<T>>(event: K): number;
 
-  // ⚡ Biological aliases
+  // Biological aliases
   /** Alias for `on` — Bind a receptor to a signal. */
   bind: Emitochondria<T>['on'];
   /** Alias for `off` — Release a receptor. */
@@ -85,7 +85,7 @@ export interface Emitochondria<T extends EventMap> {
  * mito.emit('user:login', { userId: '123' });
  * mito.emit('app:ready');
  *
- * // Biological API ⚡
+ * // Biological API
  * mito.bind('user:login', (data) => console.log(data.userId));
  * mito.pulse('user:login', { userId: '123' });
  * ```
