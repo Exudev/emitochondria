@@ -1,8 +1,8 @@
 {
   "name": "emitochondria",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "The powerhouse of your events — A tiny, fully-typed event emitter for TypeScript",
+  "description": "The powerhouse of your events — A tiny, fully-typed event emitter for TypeScript with built-in error handling and memory leak detection",
   "author": "Pablo Díaz A.K.A exudev",
   "license": "MIT",
   "keywords": [
@@ -14,7 +14,11 @@
     "pubsub",
     "pub-sub",
     "subscribe",
-    "publish"
+    "publish",
+    "error-handling",
+    "memory-leak-detection",
+    "async",
+    "type-safe"
   ],
   "repository": {
     "type": "git",
@@ -51,8 +55,5 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
-  },
-  "dependencies": {
-    "emitochondria": "^1.0.0"
   }
 }
