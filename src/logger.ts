@@ -1,4 +1,5 @@
 import { LoggingOptions, TimestampFormat, Timezone } from './types.js';
+import { getProjectRoot } from './config.js';
 
 // ============================================================
 // ENVIRONMENT DETECTION
@@ -129,10 +130,25 @@ export class Logger {
         this.fs = req('fs');
         this.path = req('path');
 
+        // Resolve path relative to project root (where package.json is)
+        const projectRoot = getProjectRoot();
+        const resolvedPath = this.path.isAbsolute(this.options.path)
+          ? this.options.path
+          : this.path.join(projectRoot, this.options.path);
+
+        // Update options with resolved path
+        this.options.path = resolvedPath;
+
         // Create directory if needed
-        const dir = this.path.dirname(this.options.path);
+        const dir = this.path.dirname(resolvedPath);
         if (!this.fs.existsSync(dir)) {
           this.fs.mkdirSync(dir, { recursive: true });
+        }
+
+        // Log where logs are being written (helpful for debugging)
+        const proc = (globalThis as any).process;
+        if (proc?.env?.NODE_ENV !== 'production') {
+          console.log(`[Emitochondria] Logs will be written to: ${resolvedPath}`);
         }
       }
     } catch (err) {
