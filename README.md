@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/emitochondria)](https://bundlephobia.com/package/emitochondria)
 
-A tiny, fully-typed event emitter for TypeScript with built-in error handling and memory leak detection. Zero dependencies, under 2KB.
+A tiny, fully-typed event emitter for TypeScript with built-in error handling. Zero dependencies, under 2KB.
 
 ## Features
 

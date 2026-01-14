@@ -1,6 +1,6 @@
 {
   "name": "emitochondria",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "The powerhouse of your events — A tiny, fully-typed event emitter for TypeScript with built-in error handling and memory leak detection",
   "author": "Pablo Díaz A.K.A exudev",
@@ -37,10 +37,12 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
-    }
+    },
+    "./schema.json": "./schema.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "schema.json"
   ],
   "sideEffects": false,
   "scripts": {

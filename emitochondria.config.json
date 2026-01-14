@@ -1,0 +1,16 @@
+{
+  "$schema": "./schema.json",
+  "maxListeners": 10,
+  "logging": {
+    "timestamps": true,
+    "timestampFormat": "iso",
+    "timezone": "utc",
+    "persist": false,
+    "path": "./logs/emitochondria.log",
+    "format": "text",
+    "maxSize": "10MB",
+    "logEvents": false,
+    "logErrors": true,
+    "logWarnings": true
+  }
+}

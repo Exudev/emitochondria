@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Emitochondria Configuration",
+  "type": "object",
+  "properties": {
+    "maxListeners": {
+      "type": "number",
+      "default": 10,
+      "description": "Maximum listeners per event before warning. Set to 0 to disable."
+    },
+    "onError": {
+      "type": "string",
+      "enum": ["throw"],
+      "description": "Set to 'throw' to re-throw errors instead of catching them."
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "timestamps": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable timestamps in logs."
+        },
+        "timestampFormat": {
+          "type": "string",
+          "enum": ["iso", "unix", "human"],
+          "default": "iso",
+          "description": "Format for timestamps."
+        },
+        "timezone": {
+          "type": "string",
+          "enum": ["utc", "local"],
+          "default": "utc",
+          "description": "Timezone for timestamps."
+        },
+        "persist": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable file logging. Only works in Node.js."
+        },
+        "path": {
+          "type": "string",
+          "default": "./logs/emitochondria.log",
+          "description": "Path to log file."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["text", "json"],
+          "default": "text",
+          "description": "Log file format."
+        },
+        "maxSize": {
+          "type": "string",
+          "default": "10MB",
+          "description": "Maximum log file size before rotation. E.g., '10MB', '1GB'."
+        },
+        "logEvents": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log every emitted event. Can be verbose!"
+        },
+        "logErrors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log handler errors."
+        },
+        "logWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log memory leak warnings."
+        }
+      }
+    }
+  }
+}
