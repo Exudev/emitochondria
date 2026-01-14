@@ -23,8 +23,8 @@ Comprehensive example covering:
 - One-time subscriptions with `once()`
 - Unsubscribing from events
 - Wildcard listeners with `onAny()`
-- Biological API (alternative naming)
-- Async event handlers with `emitAsync()` / `cascade()`
+- Listener inspection
+- Async event handlers with `emitAsync()`
 
 ## Creating Your Own Examples
 

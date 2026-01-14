@@ -256,35 +256,6 @@ const events = createEmitochondria<MyEvents>({
 });
 ```
 
-## ⚡ Biological API (Alternative Naming)
-
-Emitochondria offers biologically-themed aliases for all methods. Use whichever style fits your project:
-
-| Standard API | Biological Alias | Description |
-|--------------|------------------|-------------|
-| `.on()` | `.bind()` | Bind a receptor to a signal |
-| `.off()` | `.release()` | Release a receptor |
-| `.emit()` | `.pulse()` | Pulse energy through the system |
-| `.emitAsync()` | `.cascade()` | Trigger a signal cascade |
-| `.once()` | `.spike()` | Single spike of energy |
-| `.onAny()` | `.membrane()` | Membrane catches all signals |
-| `.clear()` | `.apoptosis()` | Programmed cell death |
-| `.listenerCount()` | `.receptors()` | Count of receptors |
-
-```typescript
-// Standard API
-events.on('user:login', handler);
-events.emit('user:login', data);
-
-// Biological API - same functionality, different style
-events.bind('user:login', handler);
-events.pulse('user:login', data);
-
-// Mix and match freely
-events.bind('save', async (data) => await saveToDatabase(data));
-await events.cascade('save', { id: '123' });
-```
-
 ## TypeScript Magic
 
 The type system prevents mistakes at compile time:

@@ -1,10 +1,13 @@
 {
   "name": "emitochondria",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "The powerhouse of your events — A tiny, fully-typed event emitter for TypeScript with built-in error handling and memory leak detection",
   "author": "Pablo Díaz A.K.A exudev",
   "license": "MIT",
+  "bin": {
+    "emitochondria": "./bin/emitochondria.cjs"
+  },
   "keywords": [
     "events",
     "emitter",
@@ -42,6 +45,7 @@
   },
   "files": [
     "dist",
+    "bin",
     "schema.json"
   ],
   "sideEffects": false,

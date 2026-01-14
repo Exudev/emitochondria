@@ -81,21 +81,21 @@ events.emit('notification', { message: 'Wildcard example', level: 'info' });
 
 removeWildcard(); // Stop listening to all events
 
-// Example 6: Biological API (alternative naming)
-console.log('\n--- Example 6: Biological API ---');
+// Example 6: Listener inspection
+console.log('\n--- Example 6: Listener Inspection ---');
 const mito = createEmitochondria<AppEvents>();
 
-mito.bind('user:login', (data) => {
-  console.log(`⚡ Receptor activated: ${data.username}`);
+mito.on('user:login', (data) => {
+  console.log(`⚡ Handler activated: ${data.username}`);
 });
 
-mito.pulse('user:login', {
+mito.emit('user:login', {
   userId: '999',
-  username: 'bio-user',
+  username: 'inspected-user',
   timestamp: new Date(),
 });
 
-console.log(`\n📊 Active receptors for 'user:login': ${mito.receptors('user:login')}`);
+console.log(`\n📊 Active listeners for 'user:login': ${mito.listenerCount('user:login')}`);
 
 // Example 7: Async handlers with emitAsync
 console.log('\n--- Example 7: Async handlers ---');
@@ -119,7 +119,7 @@ asyncEmitter.on('save:user', async (data) => {
 });
 
 (async () => {
-  await asyncEmitter.cascade('save:user', {
+  await asyncEmitter.emitAsync('save:user', {
     userId: '555',
     data: { name: 'Test User', email: 'test@example.com' },
   });
