@@ -10,6 +10,39 @@ const isNode = typeof (globalThis as any).process !== 'undefined'
 
 const isBrowser = typeof (globalThis as any).window !== 'undefined';
 
+// Get require function - works in both ESM and CJS
+function getRequireFunction(): ((id: string) => any) | null {
+  if (!isNode) return null;
+
+  // CJS: globalThis.require is available (bundlers like tsup inject this)
+  if (typeof (globalThis as any).require === 'function') {
+    return (globalThis as any).require;
+  }
+
+  // Try Function constructor to get require in CJS context
+  try {
+    const req = Function('return typeof require !== "undefined" ? require : null')();
+    if (req) return req;
+  } catch {
+    // Ignore
+  }
+
+  // ESM: use createRequire
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createRequire } = Function('return require("node:module")')();
+    // import.meta.url might be empty in CJS, use a fallback
+    const url = typeof import.meta?.url === 'string' && import.meta.url
+      ? import.meta.url
+      : 'file://' + (globalThis as any).process?.cwd?.() + '/';
+    return createRequire(url);
+  } catch {
+    return null;
+  }
+}
+
+const nodeRequire = getRequireFunction();
+
 // ============================================================
 // TIMESTAMP FORMATTING
 // ============================================================
@@ -124,11 +157,10 @@ export class Logger {
     if (!isNode) return;
 
     try {
-      // Require fs and path synchronously
-      const req = (globalThis as any).require;
-      if (req) {
-        this.fs = req('fs');
-        this.path = req('path');
+      // Require fs and path synchronously using ESM-compatible require
+      if (nodeRequire) {
+        this.fs = nodeRequire('fs');
+        this.path = nodeRequire('path');
 
         // Resolve path relative to project root (where package.json is)
         const projectRoot = getProjectRoot();
