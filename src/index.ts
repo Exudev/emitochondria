@@ -1,5 +1,5 @@
 // Core
-export { createEmitochondria } from './emitter.js';
+export { createEmitochondria, createEmitochondriaAsync } from './emitter.js';
 
 // Types
 export type {

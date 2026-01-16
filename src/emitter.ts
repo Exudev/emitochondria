@@ -9,6 +9,7 @@ import {
 } from './types.js';
 import { Logger } from './logger.js';
 import { mergeConfig } from './config.js';
+import { loadNodeModules } from './node-loader.js';
 
 // ============================================================
 // DEFAULT HANDLERS
@@ -264,4 +265,23 @@ export function createEmitochondria<T extends EventMap>(
   };
 
   return emitter;
+}
+
+/**
+ * Create an emitter with guaranteed async initialization.
+ * Use this in ESM environments when you need file logging to be ready immediately.
+ *
+ * @example
+ * const emitter = await createEmitochondriaAsync({ logging: { persist: true } });
+ * emitter.emit('ready', {}); // File logging is guaranteed to be available
+ */
+export async function createEmitochondriaAsync<T extends EventMap>(
+  options: EmitochondriaOptions<T> = {}
+): Promise<Emitochondria<T>> {
+  // Pre-load Node modules before creating the emitter
+  if (options.logging?.persist) {
+    await loadNodeModules();
+  }
+
+  return createEmitochondria(options);
 }

@@ -1,47 +1,11 @@
 import { EmitochondriaConfig, EmitochondriaOptions, EventMap } from './types.js';
+import { getNodeModules, isNodeEnvironment } from './node-loader.js';
 
 // ============================================================
 // CONFIG FILE LOADING
 // ============================================================
 
 const CONFIG_FILENAME = 'emitochondria.config.json';
-
-// Environment detection
-const isNode = typeof (globalThis as any).process !== 'undefined'
-  && (globalThis as any).process?.versions?.node != null;
-
-// Get require function - works in both ESM and CJS
-function getRequireFunction(): ((id: string) => any) | null {
-  if (!isNode) return null;
-
-  // CJS: globalThis.require is available (bundlers like tsup inject this)
-  if (typeof (globalThis as any).require === 'function') {
-    return (globalThis as any).require;
-  }
-
-  // Try Function constructor to get require in CJS context
-  try {
-    const req = Function('return typeof require !== "undefined" ? require : null')();
-    if (req) return req;
-  } catch {
-    // Ignore
-  }
-
-  // ESM: use createRequire
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createRequire } = Function('return require("node:module")')();
-    // import.meta.url might be empty in CJS, use a fallback
-    const url = typeof import.meta?.url === 'string' && import.meta.url
-      ? import.meta.url
-      : 'file://' + (globalThis as any).process?.cwd?.() + '/';
-    return createRequire(url);
-  } catch {
-    return null;
-  }
-}
-
-const nodeRequire = getRequireFunction();
 
 let cachedConfig: EmitochondriaConfig | null = null;
 let cachedProjectRoot: string | null = null;
@@ -53,20 +17,19 @@ function findProjectRoot(): string {
   if (cachedProjectRoot !== null) return cachedProjectRoot;
 
   const proc = (globalThis as any).process;
-  if (typeof proc === 'undefined' || !proc?.versions?.node) {
+  if (!isNodeEnvironment()) {
     cachedProjectRoot = '';
     return '';
   }
 
   try {
-    if (!nodeRequire) {
+    const { fs, path, loaded } = getNodeModules();
+
+    if (!loaded || !fs || !path) {
       const cwd: string = proc.cwd();
       cachedProjectRoot = cwd;
       return cwd;
     }
-
-    const path = nodeRequire('path');
-    const fs = nodeRequire('fs');
 
     let dir: string = proc.cwd();
 
@@ -105,19 +68,18 @@ function loadConfigFileSync(): EmitochondriaConfig {
   if (cachedConfig !== null) return cachedConfig;
 
   const proc = (globalThis as any).process;
-  if (typeof proc === 'undefined' || !proc?.versions?.node) {
+  if (!isNodeEnvironment()) {
     cachedConfig = {};
     return cachedConfig;
   }
 
   try {
-    if (!nodeRequire) {
+    const { fs, path, loaded } = getNodeModules();
+
+    if (!loaded || !fs || !path) {
       cachedConfig = {};
       return cachedConfig;
     }
-
-    const fs = nodeRequire('fs');
-    const path = nodeRequire('path');
 
     // Look for config in project root first
     const projectRoot = findProjectRoot();

@@ -1,47 +1,12 @@
 import { LoggingOptions, TimestampFormat, Timezone } from './types.js';
 import { getProjectRoot } from './config.js';
+import { getNodeModules, loadNodeModules, isNodeEnvironment } from './node-loader.js';
 
 // ============================================================
 // ENVIRONMENT DETECTION
 // ============================================================
 
-const isNode = typeof (globalThis as any).process !== 'undefined'
-  && (globalThis as any).process?.versions?.node != null;
-
 const isBrowser = typeof (globalThis as any).window !== 'undefined';
-
-// Get require function - works in both ESM and CJS
-function getRequireFunction(): ((id: string) => any) | null {
-  if (!isNode) return null;
-
-  // CJS: globalThis.require is available (bundlers like tsup inject this)
-  if (typeof (globalThis as any).require === 'function') {
-    return (globalThis as any).require;
-  }
-
-  // Try Function constructor to get require in CJS context
-  try {
-    const req = Function('return typeof require !== "undefined" ? require : null')();
-    if (req) return req;
-  } catch {
-    // Ignore
-  }
-
-  // ESM: use createRequire
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createRequire } = Function('return require("node:module")')();
-    // import.meta.url might be empty in CJS, use a fallback
-    const url = typeof import.meta?.url === 'string' && import.meta.url
-      ? import.meta.url
-      : 'file://' + (globalThis as any).process?.cwd?.() + '/';
-    return createRequire(url);
-  } catch {
-    return null;
-  }
-}
-
-const nodeRequire = getRequireFunction();
 
 // ============================================================
 // TIMESTAMP FORMATTING
@@ -118,8 +83,10 @@ export class Logger {
   private options: Required<LoggingOptions>;
   private maxSizeBytes: number;
   private browserWarned = false;
-  private fs: any = null;
-  private path: any = null;
+  private fs: typeof import('fs') | null = null;
+  private path: typeof import('path') | null = null;
+  private initPromise: Promise<void> | null = null;
+  private pendingWrites: string[] = [];
 
   constructor(options: LoggingOptions = {}) {
     this.options = {
@@ -154,38 +121,81 @@ export class Logger {
       return;
     }
 
-    if (!isNode) return;
+    if (!isNodeEnvironment()) return;
 
+    // Try synchronous loading first (works in CJS)
+    const { fs, path, loaded } = getNodeModules();
+
+    if (loaded && fs && path) {
+      this.fs = fs;
+      this.path = path;
+      this.setupLogPath();
+      return;
+    }
+
+    // Need async loading (ESM environment)
+    this.initPromise = this.initFileLoggingAsync();
+  }
+
+  private async initFileLoggingAsync(): Promise<void> {
     try {
-      // Require fs and path synchronously using ESM-compatible require
-      if (nodeRequire) {
-        this.fs = nodeRequire('fs');
-        this.path = nodeRequire('path');
+      const { fs, path } = await loadNodeModules();
 
-        // Resolve path relative to project root (where package.json is)
-        const projectRoot = getProjectRoot();
-        const resolvedPath = this.path.isAbsolute(this.options.path)
-          ? this.options.path
-          : this.path.join(projectRoot, this.options.path);
-
-        // Update options with resolved path
-        this.options.path = resolvedPath;
-
-        // Create directory if needed
-        const dir = this.path.dirname(resolvedPath);
-        if (!this.fs.existsSync(dir)) {
-          this.fs.mkdirSync(dir, { recursive: true });
-        }
-
-        // Log where logs are being written (helpful for debugging)
-        const proc = (globalThis as any).process;
-        if (proc?.env?.NODE_ENV !== 'production') {
-          console.log(`[Emitochondria] Logs will be written to: ${resolvedPath}`);
-        }
+      if (!fs || !path) {
+        console.warn(
+          '[Emitochondria] File logging unavailable: Could not load Node.js fs/path modules. ' +
+          'Logs will only be written to console.'
+        );
+        return;
       }
+
+      this.fs = fs;
+      this.path = path;
+      this.setupLogPath();
+
+      // Flush any pending writes
+      this.flushPendingWrites();
     } catch (err) {
       console.error('[Emitochondria] Failed to initialize file logging:', err);
     }
+  }
+
+  private setupLogPath(): void {
+    if (!this.fs || !this.path) return;
+
+    try {
+      // Resolve path relative to project root (where package.json is)
+      const projectRoot = getProjectRoot();
+      const resolvedPath = this.path.isAbsolute(this.options.path)
+        ? this.options.path
+        : this.path.join(projectRoot, this.options.path);
+
+      // Update options with resolved path
+      this.options.path = resolvedPath;
+
+      // Create directory if needed
+      const dir = this.path.dirname(resolvedPath);
+      if (!this.fs.existsSync(dir)) {
+        this.fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Log where logs are being written (helpful for debugging)
+      const proc = (globalThis as any).process;
+      if (proc?.env?.NODE_ENV !== 'production') {
+        console.log(`[Emitochondria] Logs will be written to: ${resolvedPath}`);
+      }
+    } catch (err) {
+      console.error('[Emitochondria] Failed to setup log path:', err);
+    }
+  }
+
+  private flushPendingWrites(): void {
+    if (this.pendingWrites.length === 0) return;
+
+    for (const content of this.pendingWrites) {
+      this.writeToFileSync(content);
+    }
+    this.pendingWrites = [];
   }
 
   private getTimestamp(): string | undefined {
@@ -226,7 +236,24 @@ export class Logger {
   }
 
   private writeToFile(content: string): void {
-    if (!this.fs || !this.path || !isNode) return;
+    // If modules are loaded, write immediately
+    if (this.fs && this.path) {
+      this.writeToFileSync(content);
+      return;
+    }
+
+    // If still initializing, queue the write
+    if (this.initPromise) {
+      this.pendingWrites.push(content);
+      return;
+    }
+
+    // No init happening and modules not loaded - file logging not available
+    // This case is already warned about in initFileLoggingAsync
+  }
+
+  private writeToFileSync(content: string): void {
+    if (!this.fs || !this.path) return;
 
     try {
       const line = content + '\n';
