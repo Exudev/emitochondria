@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig([
-  // Library build
+  // Library build (CJS + ESM)
   {
     entry: ['src/index.ts'],
     format: ['cjs', 'esm'],

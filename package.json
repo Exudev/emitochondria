@@ -50,7 +50,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp dist/index.d.ts dist/index.d.mts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
